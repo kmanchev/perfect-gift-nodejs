@@ -6,7 +6,12 @@ const schema = new Schema({
     hash: { type: String, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
-    events: [{ type: String, ref: 'id'}],
+    events: [{
+        eventName: { type: String, unique: true, required: true },
+        eventType: { type: String, required: true },
+        createdDate: { type: Date, default: Date.now },
+        createdBy: { type: String }
+    }],
     createdDate: { type: Date, default: Date.now }
 });
 

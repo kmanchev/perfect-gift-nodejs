@@ -75,8 +75,8 @@ function createEvent(req, res, next) {
                 var events = [];
                 for (var i = 0; i < allEvents.length; i++) {
                     if (allEvents[i].createdBy == createdBy) {
-                        const event = eventService.getEventObject(allEvents[i]);
-                        events.push(event);
+                        //const event = eventService.getEventObject(allEvents[i]);
+                        events.push(allEvents[i]);
                     }
                 }
                 var updateEventData = { events: events };
@@ -99,6 +99,7 @@ function deleteEvent(req, res, next) {
         var usersEvents = res.events;
         var spliceIndex = -1;
         for (var i = 0; i < usersEvents.length; i++) {
+            //var event = JSON.parse(usersEvents[i]);
             if (usersEvents[i].id == req.params.id) {
                 spliceIndex = i;
                 break;
