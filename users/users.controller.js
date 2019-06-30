@@ -1,21 +1,25 @@
 ﻿const express = require('express');
-const router = express.Router();
+var multipart = require('connect-multiparty');
+var multipartMiddleware = multipart({uploadDir: './uploads'});
+const router = express.Router().all(multipartMiddleware);
 const userService = require('./user.service');
 const eventService = require('../events/event.service');
+
 
 // routes
 router.post('/authenticate', authenticate);
 router.post('/register', register);
 router.get('/', getAllUsers);
 router.get('/current', getCurrentUser);
+router.get('/events', getEventsForCurrentUser);
 router.get('/:id', getUserById);
 router.put('/:id', updateUser);
 router.delete('/:id', _deleteUser);
 router.post('/createEvent', createEvent);
 router.post('/deleteEvent/:id', deleteEvent);
-router.get('/events', getEventsForCurrentUser);
 router.get('/eventData/:id', getEventData);
 router.put('/updateEvent/:id', updateEvent);
+router.post('/upload', multipartMiddleware, uploadData);
 
 module.exports = router;
 
@@ -82,24 +86,19 @@ function createEvent(req, res, next) {
             .catch(err => next(err));
 
     });
-
-    //user => user ? res.json(user) : res.sendStatus(404)
-
-
-    /* userService.update(req.params.id, req.body)
-    .then(() => res.json({}))
-    .catch(err => next(err)); */
 }
 
 function deleteEvent(req, res, next) {
     eventServive.delete(req.params.id)
         .then(() => res.json({}))
         .catch(err => next(err));
+
+        //TODO; To finish - delete record from user payloads
 }
 
 function getEventsForCurrentUser(req, res, next) {
-    userService.getById(req.user.sub)
-        .then(user => user ? res.json(user) : res.sendStatus(404))
+    userService.getAllEvents(req.user.sub)
+        .then(events => events ? res.json(events) : res.sendStatus(404))
         .catch(err => next(err));
 }
 
@@ -107,4 +106,10 @@ function getEventData(req, res, next) {
 }
 
 function updateEvent(req, res, next) {
+}
+
+function uploadData(req, res, next) {
+    res.json({
+        'message': 'File uploaded successfully'
+    });
 }

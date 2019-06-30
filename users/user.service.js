@@ -10,6 +10,7 @@ module.exports = {
     getById,
     create,
     updateUserContent,
+    getAllEvents,
     delete: _delete
 };
 
@@ -79,6 +80,10 @@ async function updateUserContent(id, data, type) {
     Object.assign(user, data);
 
     await user.save();
+}
+
+async function getAllEvents(id) {
+    return await User.findById(id).select('events');
 }
 
 async function _delete(id) {
