@@ -7,8 +7,13 @@ module.exports = {
     getById,
     create,
     update,
-    delete: _delete
+    delete: _delete,
+    getEventObject
 };
+
+function getEventObject(eventData) {
+    return new Event(eventData)
+}
 
 async function getAll() {
     return await Event.find().select('-hash');

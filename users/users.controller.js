@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 var multipart = require('connect-multiparty');
-var multipartMiddleware = multipart({uploadDir: './uploads'});
+var multipartMiddleware = multipart({ uploadDir: './uploads' });
 const router = express.Router().all(multipartMiddleware);
 const userService = require('./user.service');
 const eventService = require('../events/event.service');
@@ -69,31 +69,50 @@ function createEvent(req, res, next) {
     var createdBy = req.user.sub;
 
     eventService.create(createdBy, req.body)
-        .then(() => res.json({}))
+        .then(function (results1) {
+            eventService.getAll().then(function (result2) {
+                var allEvents = result2;
+                var events = [];
+                for (var i = 0; i < allEvents.length; i++) {
+                    if (allEvents[i].createdBy == createdBy) {
+                        const event = eventService.getEventObject(allEvents[i]);
+                        events.push(event);
+                    }
+                }
+                var updateEventData = { events: events };
+                userService.updateUserContent(req.user.sub, updateEventData, "eventUpdate")
+                    .then(() => res.json({}))
+                    .catch(err => next(err));
+
+            });
+            return results1.json({})
+        })
         .catch(err => next(err));
-
-    eventService.getAll().then(function (res) {
-        var allEvents = res;
-        var events = [];
-        for (var i = 0; i < allEvents.length; i++) {
-            if (allEvents[i].createdBy == createdBy) {
-                events.push(allEvents[i].id);
-            }
-        }
-        var updateEventData = { events: events };
-        userService.updateUserContent(req.user.sub, updateEventData, "eventUpdate")
-            .then(() => res.json({}))
-            .catch(err => next(err));
-
-    });
 }
 
 function deleteEvent(req, res, next) {
-    eventServive.delete(req.params.id)
+    eventService.delete(req.params.id)
         .then(() => res.json({}))
         .catch(err => next(err));
 
-        //TODO; To finish - delete record from user payloads
+    userService.getById(req.user.sub).then(function (res) {
+        var usersEvents = res.events;
+        var spliceIndex = -1;
+        for (var i = 0; i < usersEvents.length; i++) {
+            if (usersEvents[i].id == req.params.id) {
+                spliceIndex = i;
+                break;
+            }
+        }
+        if (spliceIndex != -1) {
+            var removed = usersEvents.splice(spliceIndex, 1);
+        }
+
+        var updateEventData = { events: usersEvents };
+        userService.updateUserContent(req.user.sub, updateEventData, "eventUpdate")
+            .then(() => res.json({}))
+            .catch(err => next(err));
+    });
 }
 
 function getEventsForCurrentUser(req, res, next) {
