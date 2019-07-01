@@ -85,7 +85,7 @@ function createEvent(req, res, next) {
                     .catch(err => next(err));
 
             });
-            return results1.json({})
+            return res.json({})
         })
         .catch(err => next(err));
 }
@@ -117,10 +117,14 @@ function deleteEvent(req, res, next) {
 }
 
 function getEventsForCurrentUser(req, res, next) {
-    userService.getAllEvents(req.user.sub)
-        .then(events => events ? res.json(events) : res.sendStatus(404))
+    userService.getById(req.user.sub)
+        .then(function(result) {
+            return result ? res.json(result.events) : res.sendStatus(404);
+        })
         .catch(err => next(err));
 }
+
+//events => events ? res.json(events) : res.sendStatus(404)
 
 function getEventData(req, res, next) {
 }
