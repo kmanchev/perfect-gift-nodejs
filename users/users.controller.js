@@ -18,9 +18,7 @@ const storage = multer.diskStorage({
 
 });
 
-
 const upload = multer({ storage: storage })
-
 
 // routes
 router.post('/authenticate', authenticate);
@@ -28,7 +26,7 @@ router.post('/register', register);
 router.post('/invite', inviteUser);
 router.get('/', getAllUsers);
 router.get('/current', getCurrentUser);
-router.get('/events', getEventsForCurrentUser);
+router.get('/:id/events', getEventsForCurrentUser);
 router.get('/event/:id', getEvent);
 router.get('/:id', getUserById);
 router.put('/:id', updateUser);
@@ -143,10 +141,20 @@ function deleteEvent(req, res, next) {
 }
 
 function getEventsForCurrentUser(req, res, next) {
-    userService.getById(req.user.sub)
-        .then(function (result) {
-            return result ? res.json(result.events) : res.sendStatus(404);
-        })
+    eventService.getAll().then(function (result) {
+        if (result) {
+            var yourEvents = [];
+            result.forEach(function (data) {
+                if (data.createdBy == req.params.id) {
+                    yourEvents.push(data);
+                }
+            })
+
+            res.json(yourEvents);
+        } else {
+            return res.sendStatus(404);
+        }
+    })
         .catch(err => next(err));
 }
 
@@ -167,20 +175,10 @@ function updateEvent(req, res, next) {
 function photoUpload(req, res, next) {
     eventService.getById(req.params.eventId).then(function (result) {
         var updatedMultimedia = result.multimedia;
-        updatedMultimedia.push(req.file.path);
+        updatedMultimedia.push(req.file.originalname);
         eventService.update(req.params.eventId, { multimedia: updatedMultimedia })
             .then(() => res.json({}))
             .catch(err => next(err));;
     }).catch(err => next(err));
-
-    /* var img = fs.readFileSync(req.file.path);
-    var encode_image = img.toString('base64');
-
-    var finalImg = {
-        contentType: req.file.mimetype,
-        image: new Buffer(encode_image, 'base64')
-    };
-    imageService.saveImageToDb(finalImg); */
-
 }
 
