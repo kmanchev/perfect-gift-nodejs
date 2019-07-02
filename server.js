@@ -9,6 +9,7 @@ const errorHandler = require('_helpers/error-handler');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads2'));
 
 // use JWT auth to secure the api
 app.use(jwt());

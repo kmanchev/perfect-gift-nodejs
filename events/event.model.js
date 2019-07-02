@@ -6,7 +6,8 @@ const schema = new Schema({
     eventType: { type: String, required: true },
     createdDate: { type: Date, default: Date.now },
     createdBy: { type: String },
-    members: [{ type: String, ref: 'id'}]
+    members: [{ type: String, ref: 'id'}],
+    multimedia: [{ type: String}]
 });
 
 schema.set('toJSON', { virtuals: true });

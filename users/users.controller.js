@@ -1,25 +1,43 @@
 ﻿const express = require('express');
-var multipart = require('connect-multiparty');
-var multipartMiddleware = multipart({ uploadDir: './uploads' });
-const router = express.Router().all(multipartMiddleware);
+/* var multipart = require('connect-multiparty');
+var multipartMiddleware = multipart({ uploadDir: './uploads' }); */
+const router = express.Router();//.all(multipartMiddleware);
 const userService = require('./user.service');
+const imageService = require('../_helpers/image.service');
 const eventService = require('../events/event.service');
+const multer = require('multer');
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './uploads2');
+
+    },
+    filename: function (req, file, cb) {
+        cb(null, req.user.sub + "_" + new Date().toISOString() + "_" + file.originalname)
+    }
+
+});
+
+
+const upload = multer({ storage: storage })
 
 
 // routes
 router.post('/authenticate', authenticate);
 router.post('/register', register);
+router.post('/invite', inviteUser);
 router.get('/', getAllUsers);
 router.get('/current', getCurrentUser);
 router.get('/events', getEventsForCurrentUser);
+router.get('/event/:id', getEvent);
 router.get('/:id', getUserById);
 router.put('/:id', updateUser);
 router.delete('/:id', _deleteUser);
 router.post('/createEvent', createEvent);
 router.post('/deleteEvent/:id', deleteEvent);
-router.get('/eventData/:id', getEventData);
 router.put('/updateEvent/:id', updateEvent);
-router.post('/upload', multipartMiddleware, uploadData);
+//router.post('/upload', multipartMiddleware, uploadData);
+router.post('/photoUpload/:eventId', upload.single('productImage'), photoUpload);
 
 module.exports = router;
 
@@ -32,6 +50,16 @@ function authenticate(req, res, next) {
 function register(req, res, next) {
     userService.create(req.body)
         .then(() => res.json({}))
+        .catch(err => next(err));
+}
+
+function inviteUser(req, res, next) {
+    userService.getAll()
+        .then(function (result) {
+            console.log(req.body);
+            console.log(result);
+            return res.json({ message: "no user with that mail" });
+        })
         .catch(err => next(err));
 }
 
@@ -75,8 +103,7 @@ function createEvent(req, res, next) {
                 var events = [];
                 for (var i = 0; i < allEvents.length; i++) {
                     if (allEvents[i].createdBy == createdBy) {
-                        //const event = eventService.getEventObject(allEvents[i]);
-                        events.push(allEvents[i]);
+                        events.push(allEvents[i].id);
                     }
                 }
                 var updateEventData = { events: events };
@@ -99,7 +126,6 @@ function deleteEvent(req, res, next) {
         var usersEvents = res.events;
         var spliceIndex = -1;
         for (var i = 0; i < usersEvents.length; i++) {
-            //var event = JSON.parse(usersEvents[i]);
             if (usersEvents[i].id == req.params.id) {
                 spliceIndex = i;
                 break;
@@ -118,22 +144,43 @@ function deleteEvent(req, res, next) {
 
 function getEventsForCurrentUser(req, res, next) {
     userService.getById(req.user.sub)
-        .then(function(result) {
+        .then(function (result) {
             return result ? res.json(result.events) : res.sendStatus(404);
         })
         .catch(err => next(err));
 }
 
-//events => events ? res.json(events) : res.sendStatus(404)
-
-function getEventData(req, res, next) {
+function getEvent(req, res, next) {
+    eventService.getById(req.params.id)
+        .then(function (result) {
+            return result ? res.json(result) : res.sendStatus(404);
+        })
+        .catch(err => next(err));
 }
 
 function updateEvent(req, res, next) {
+    eventService.update(req.params.id, req.body)
+        .then(() => res.json({}))
+        .catch(err => next(err));
 }
 
-function uploadData(req, res, next) {
-    res.json({
-        'message': 'File uploaded successfully'
-    });
+function photoUpload(req, res, next) {
+    eventService.getById(req.params.eventId).then(function (result) {
+        var updatedMultimedia = result.multimedia;
+        updatedMultimedia.push(req.file.path);
+        eventService.update(req.params.eventId, { multimedia: updatedMultimedia })
+            .then(() => res.json({}))
+            .catch(err => next(err));;
+    }).catch(err => next(err));
+
+    /* var img = fs.readFileSync(req.file.path);
+    var encode_image = img.toString('base64');
+
+    var finalImg = {
+        contentType: req.file.mimetype,
+        image: new Buffer(encode_image, 'base64')
+    };
+    imageService.saveImageToDb(finalImg); */
+
 }
+

@@ -37,9 +37,9 @@ async function update(id, eventParam) {
     // validate
     if (!event) throw 'Event not found';
 
-    // copy userParam properties to user
+    // copy eventParam properties to user
     Object.assign(event, eventParam);
-    await user.save();
+    await event.save();
 }
 
 async function _delete(id) {
