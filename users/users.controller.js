@@ -9,7 +9,7 @@ const multer = require('multer');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './uploads2');
+        cb(null, './uploads');
 
     },
     filename: function (req, file, cb) {
@@ -175,7 +175,7 @@ function updateEvent(req, res, next) {
 function photoUpload(req, res, next) {
     eventService.getById(req.params.eventId).then(function (result) {
         var updatedMultimedia = result.multimedia;
-        updatedMultimedia.push(req.file.originalname);
+        updatedMultimedia.push(req.file.path);
         eventService.update(req.params.eventId, { multimedia: updatedMultimedia })
             .then(() => res.json({}))
             .catch(err => next(err));;
