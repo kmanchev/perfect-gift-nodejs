@@ -1,11 +1,10 @@
 ﻿const express = require('express');
-/* var multipart = require('connect-multiparty');
-var multipartMiddleware = multipart({ uploadDir: './uploads' }); */
-const router = express.Router();//.all(multipartMiddleware);
+const router = express.Router();
 const userService = require('./user.service');
 const imageService = require('../_helpers/image.service');
 const eventService = require('../events/event.service');
 const multer = require('multer');
+const fs = require('fs');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -34,8 +33,8 @@ router.delete('/:id', _deleteUser);
 router.post('/createEvent', createEvent);
 router.post('/deleteEvent/:id', deleteEvent);
 router.put('/updateEvent/:id', updateEvent);
-//router.post('/upload', multipartMiddleware, uploadData);
 router.post('/photoUpload/:eventId', upload.single('productImage'), photoUpload);
+router.delete('/deletePhoto/:uploaderId/:eventId/:photoName', deletePhoto);
 
 module.exports = router;
 
@@ -175,10 +174,44 @@ function updateEvent(req, res, next) {
 function photoUpload(req, res, next) {
     eventService.getById(req.params.eventId).then(function (result) {
         var updatedMultimedia = result.multimedia;
-        updatedMultimedia.push(req.file.path);
+        var multimediaObject = { uploader: req.user.sub, path: req.file.path };
+        updatedMultimedia.push(multimediaObject);
         eventService.update(req.params.eventId, { multimedia: updatedMultimedia })
             .then(() => res.json({}))
             .catch(err => next(err));;
     }).catch(err => next(err));
+}
+
+function deletePhoto(req, res, next) {
+
+    eventService.getById(req.params.eventId).then(function (result) {
+        var multimediaSize = result.multimedia.length;
+        var spliceIndex = -1;
+        for (var i = 0; i < result.multimedia.length; i++) {
+            if (result.multimedia[i].uploader == req.params.uploaderId && result.multimedia[i].path == "uploads/" + req.params.photoName) {
+                spliceIndex = i;
+                break;
+            }
+        }
+
+        if (spliceIndex != -1) {
+            result.multimedia.splice(spliceIndex, 1);
+        }
+        if (multimediaSize != result.multimedia.length) {
+            eventService.update(req.params.eventId, { multimedia: result.multimedia })
+                .then(function (res) {
+                    fs.unlink('uploads/' + req.params.photoName, (err) => {
+                        if (err) throw err;
+                        console.log('successfully deleted ' + req.params.photoName);
+                        res.sendStatus(200);
+                    });
+                })
+                .catch(err => next(err));;
+        }
+    }).catch(err => next(err));
+
+
+
+
 }
 
