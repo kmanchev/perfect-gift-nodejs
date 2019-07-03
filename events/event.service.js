@@ -26,7 +26,7 @@ async function getById(id) {
 async function create(createdBy, eventParam) {
 
     const event = new Event(eventParam);
-
+    event.members.push(createdBy);
     event.createdBy = createdBy;
     await event.save();
 }

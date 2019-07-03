@@ -22,11 +22,11 @@ const upload = multer({ storage: storage })
 // routes
 router.post('/authenticate', authenticate);
 router.post('/register', register);
-router.post('/invite', inviteUser);
 router.get('/', getAllUsers);
 router.get('/current', getCurrentUser);
 router.get('/:id/events', getEventsForCurrentUser);
 router.get('/event/:id', getEvent);
+router.post('/event/:eventId/invite/:username', inviteUserToEvent);
 router.get('/:id', getUserById);
 router.put('/:id', updateUser);
 router.delete('/:id', _deleteUser);
@@ -47,16 +47,6 @@ function authenticate(req, res, next) {
 function register(req, res, next) {
     userService.create(req.body)
         .then(() => res.json({}))
-        .catch(err => next(err));
-}
-
-function inviteUser(req, res, next) {
-    userService.getAll()
-        .then(function (result) {
-            console.log(req.body);
-            console.log(result);
-            return res.json({ message: "no user with that mail" });
-        })
         .catch(err => next(err));
 }
 
@@ -144,7 +134,7 @@ function getEventsForCurrentUser(req, res, next) {
         if (result) {
             var yourEvents = [];
             result.forEach(function (data) {
-                if (data.createdBy == req.params.id) {
+                if (isMember(data, req.params.id)) {
                     yourEvents.push(data);
                 }
             })
@@ -157,12 +147,52 @@ function getEventsForCurrentUser(req, res, next) {
         .catch(err => next(err));
 }
 
+function isMember(eventData, userId) {
+
+    for(var i = 0; i < eventData.members.length; i ++) {
+        if (userId == eventData.members[i]) {
+            return true;
+        }
+
+    }
+
+    return false;
+}
+
 function getEvent(req, res, next) {
     eventService.getById(req.params.id)
         .then(function (result) {
             return result ? res.json(result) : res.sendStatus(404);
         })
         .catch(err => next(err));
+}
+
+function inviteUserToEvent(req, res, next) {
+    eventService.getById(req.params.eventId).then(function (result) {
+        userService.getAll()
+            .then(function (data) {
+                var userIndex = -1;
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i].username == req.params.username) {
+                        userIndex = i;
+                        break;
+                    }
+                }
+
+                if (userIndex != -1) {
+
+                    var updatedMembers = result.members;
+                    updatedMembers.push(data[userIndex]._id)
+
+                    eventService.update(req.params.eventId, { members: updatedMembers })
+                        .then(() => res.json({}))
+                        .catch(err => next(err));;
+                }
+
+                res.json(users)
+            })
+            .catch(err => next(err));
+    }).catch(err => next(err));
 }
 
 function updateEvent(req, res, next) {
@@ -174,7 +204,7 @@ function updateEvent(req, res, next) {
 function photoUpload(req, res, next) {
     eventService.getById(req.params.eventId).then(function (result) {
         var updatedMultimedia = result.multimedia;
-        var multimediaObject = { uploader: req.user.sub, path: req.file.path };
+        var multimediaObject = { uploader: req.user.sub, path: req.file.path, name: req.file.filename };
         updatedMultimedia.push(multimediaObject);
         eventService.update(req.params.eventId, { multimedia: updatedMultimedia })
             .then(() => res.json({}))
@@ -199,11 +229,11 @@ function deletePhoto(req, res, next) {
         }
         if (multimediaSize != result.multimedia.length) {
             eventService.update(req.params.eventId, { multimedia: result.multimedia })
-                .then(function (res) {
+                .then(function (result) {
                     fs.unlink('uploads/' + req.params.photoName, (err) => {
                         if (err) throw err;
                         console.log('successfully deleted ' + req.params.photoName);
-                        res.sendStatus(200);
+                        res.json({});
                     });
                 })
                 .catch(err => next(err));;
